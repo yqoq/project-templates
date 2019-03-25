@@ -1,0 +1,5 @@
+rootProject.name = 'gradle-project-template'
+
+include ':project-api'
+include ':project-impl'
+
