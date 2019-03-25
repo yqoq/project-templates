@@ -1,0 +1,62 @@
+#!/usr/bin/env sh
+
+## Gradle version
+[ ! -z "$1" ] && GRADLE_VERSION=$1 || GRADLE_VERSION=5.3
+[ ! -z "$2" ] && DISTRIBUTION_TYPE=$2 || DISTRIBUTION_TYPE=ALL
+DISTRIBUTION_TYPE=$(echo "$DISTRIBUTION_TYPE" | tr '[:lower:]' '[:upper:]' )
+
+echo "Init gradle project..."
+echo "  gradle version: $GRADLE_VERSION"
+echo "  distribution-type: $DISTRIBUTION_TYPE"
+
+## Gradle distribution checksum (see:https://gradle.org/release-checksums/)
+### Gradle 5.3 
+if [ "$GRADLE_VERSION" == "5.3" ]; then
+  GRADLE_BIN_SHA256=bed2bdd3955be5a09ca7e0201e9d131f194f7f6c466e1795a733733ccfb09f25
+  GRADLE_ALL_SHA256=f4d820c2a9685710eba5b92f10e0e4fb20e0d6c0dd1f46971e658160f25e7147
+  GRADLE_WRAPPER_JAR_SHA256=3dc39ad650d40f6c029bd8ff605c6d95865d657dbfdeacdb079db0ddfffedf9f
+  #### manual generated ($ shasum gradlew | gradlew.bat)
+  GRADLE_GRADLEW_SHA256=78eee188527809cd821844887e2978d5bae6bb30
+  GRADLE_GRADLEW_BAT_SHA256=712beae1f70dd7f239e331cb8d371295b4828805
+fi
+### Gradle 3.2
+if [ "$GRADLE_VERSION" == "5.2" ]; then
+  GRADLE_BIN_SHA256=ff322863250159595e93b5a4d17a6f0d21c59a1a0497c1e1cf1d53826485503f
+  GRADLE_ALL_SHA256=55db797adf2705bb782655f012af7cc7724b14382881f60fb3f3eb4b645c02d6
+  GRADLE_WRAPPER_JAR_SHA256=76b12da7f4a7cdd025e5996811a2e49bf5df0fb62d72554ab555c0e434b63aae
+  #### manual generated ($ shasum gradlew | gradlew.bat)
+  GRADLE_GRADLEW_SHA256=d13096edfb7f04038ff0d31913e87044b342c8e5
+  GRADLE_GRADLEW_BAT_SHA256=16cdc446230457e53e27388c5d0c12dda5b75f8b
+fi
+
+### Gradle 4.10.3
+if [ "$GRADLE_VERSION" == "4.10.3" ]; then
+  GRADLE_BIN_SHA256=8626cbf206b4e201ade7b87779090690447054bc93f052954c78480fa6ed186e
+  GRADLE_ALL_SHA256=336b6898b491f6334502d8074a6b8c2d73ed83b92123106bd4bf837f04111043
+  GRADLE_WRAPPER_JAR_SHA256=660ab018b8e319e9ae779fdb1b7ac47d0321bde953bf0eb4545f14952cfdcaa3
+  #### manual generated ($ shasum gradlew | gradlew.bat)
+  GRADLE_GRADLEW_SHA256=8c4c04dd98db1f00d49456dd162418a39312c5cb13d6865d783deb483bd1ed22
+  GRADLE_GRADLEW_BAT_SHA256=0008d785920c9ff5cab17403e0270ccc7ceee8e169b6d67a82d96a5475fec5c9
+fi
+
+# Gradle Wrapper init
+GRADLE_SHA256="GRADLE_${DISTRIBUTION_TYPE}_SHA256"
+## Update Gradle Wrapper
+./gradlew wrapper --gradle-version $GRADLE_VERSION --distribution-type $DISTRIBUTION_TYPE --gradle-distribution-sha256-sum ${!GRADLE_SHA256}
+## (!) must be done twice in order to complete update the Gradle Wrapper JAR 
+## so it matches the Gradle version in gradle/wrapper/gradle-wrapper.properties
+./gradlew wrapper --gradle-version $GRADLE_VERSION --distribution-type $DISTRIBUTION_TYPE --gradle-distribution-sha256-sum ${!GRADLE_SHA256}
+# Stop Gradle deamon
+./gradlew --stop 
+# Checking the Gralde Wrapper version
+./gradlew -v
+
+# Verifying the downloaded Gradle Wrapper distribution.
+echo "$GRADLE_WRAPPER_JAR_SHA256 *gradle/wrapper/gradle-wrapper.jar"  > .gradle/gradle-$GRADLE_VERSION-wrapper.sha256
+if [ ! -z "$GRADLE_GRADLEW_SHA256" ]; then
+  echo "$GRADLE_GRADLEW_SHA256 *gradlew"  >> .gradle/gradle-$GRADLE_VERSION-wrapper.sha256
+fi
+if [ ! -z "$GRADLE_GRADLEW_BAT_SHA256" ]; then
+  echo "$GRADLE_GRADLEW_BAT_SHA256 *gradlew.bat" >> .gradle/gradle-$GRADLE_VERSION-wrapper.sha256
+fi
+shasum --algorithm=256 --check .gradle/gradle-$GRADLE_VERSION-wrapper.sha256
